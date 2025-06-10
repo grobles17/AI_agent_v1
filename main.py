@@ -2,6 +2,7 @@ import os
 import sys #import to use sys.argv to allow for inputs from the shell
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 def main():
     load_dotenv()
@@ -17,13 +18,24 @@ def main():
         print('Example: python main.py "How do I build a calculator app?"')
         sys.exit(1) #sys exit with error code 1
 
-    prompt = " ".join(sys.argv[1:]) #[0] is the name of the script (not useful) and each after are the strings passed
-            
-    answer = client.models.generate_content(model="gemini-2.0-flash-001", contents=prompt)
+    verbose = "--verbose" in sys.argv #check if flag --verbose is activated
+    args = [arg for arg in sys.argv[1:] if not arg.startswith("--")] #filter out flag from the input prompt
+#sys.argv[0] is the name of the script (not useful) and each after are the strings passed 
+# unless they startwith -- which means they are flags
 
-    print(f"Prompt tokens: {answer.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {answer.usage_metadata.candidates_token_count}")
-    print("Response:")
+    prompt = " ".join(args) 
+    messages = [types.Content(role="user", 
+                              parts=[types.Part(text=prompt)])] #create list to store prompt history
+
+    answer = client.models.generate_content(model="gemini-2.0-flash-001", 
+                                            contents=messages) 
+    #What the model reads is what we send as contents, in this case the list of messages, each with the role defined
+
+    if verbose: #True if "--verbose passed"
+        print(f"User prompt: {prompt}")
+        print(f"Prompt tokens: {answer.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {answer.usage_metadata.candidates_token_count}")
+        print("Response:")
 
     try:
         print(answer.text)
